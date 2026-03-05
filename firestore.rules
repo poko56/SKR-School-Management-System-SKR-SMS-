@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ฟังก์ชันช่วยเช็คว่าเป็น Super Admin ไหม
+    function isSuperAdmin() {
+      return request.auth.token.role == 'super_admin';
+    }
+
+    // กฎสำหรับตาราง Users
+    match /users/{userId} {
+      // ดูข้อมูลได้ทุกคน (ที่ล็อกอิน)
+      allow read: if request.auth != null;
+      
+      // ห้ามใครเขียน/แก้ผ่านหน้าบ้านโดยตรง (ต้องใช้ Function เท่านั้น)
+      allow write: if false; 
+    }
+
+    // กฎสำหรับตาราง Contents (เช่น ข้อมูลฟาร์ม/บทความ)
+    match /contents/{docId} {
+      allow read: if true;
+      
+      // Super Admin แก้ได้ทุกอย่าง
+      allow write: if isSuperAdmin();
+      
+      // เงื่อนไขอื่นๆ สำหรับ User ทั่วไป (เช่น แก้ของตัวเองได้) ใส่เพิ่มตรงนี้...
+    }
+  }
+}

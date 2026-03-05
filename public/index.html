@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - SKR SMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background: #111827; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; width: 100%; max-width: 380px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .input-field { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2 style="text-align: center; color: #1f2937; margin-bottom: 20px;">SKR Admin System</h2>
+        <form id="loginForm">
+            <input type="text" id="username" class="input-field" placeholder="Username" required>
+            <input type="password" id="password" class="input-field" placeholder="Password" required>
+            <button type="submit" class="btn" id="loginBtn">เข้าสู่ระบบ</button>
+        </form>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD4KyTB1fWfsSAeW1oqkpJNGjdboJhH71Q",
+            authDomain: "krumaneerus.firebaseapp.com",
+            databaseURL: "https://krumaneerus-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "krumaneerus",
+            storageBucket: "krumaneerus.firebasestorage.app",
+            messagingSenderId: "485882448528",
+            appId: "1:485882448528:web:ac6204c6c7043f04ffa615",
+            measurementId: "G-E2RYRG970H"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const DOMAIN = "@school.local";
+
+        // ✅ ลอจิกหน้า Login: ถ้ามีคนล็อกอินอยู่ ให้เด้งไปหน้า Dashboard
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                window.location.replace("dashboard.html");
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            btn.innerText = "กำลังตรวจสอบ..."; btn.disabled = true;
+
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+
+            auth.signInWithEmailAndPassword(u + DOMAIN, p)
+                .catch(err => {
+                    console.error(err);
+                    alert("เข้าสู่ระบบไม่สำเร็จ: ตรวจสอบ Username และ Password");
+                    btn.innerText = "เข้าสู่ระบบ"; btn.disabled = false;
+                });
+        });
+    </script>
+</body>
+</html>
