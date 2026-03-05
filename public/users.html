@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Users - SKR SMS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+    <style>
+        :root { --skr-red: #c62828; --skr-red-hover: #b71c1c; --skr-dark: #1e293b; --skr-bg: #f4f6f8; }
+        body { font-family: 'Sarabun', sans-serif; background: var(--skr-bg); margin: 0; display: flex; height: 100vh; overflow: hidden; color: var(--skr-dark); }
+        
+        .sidebar { width: 260px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; z-index: 10; }
+        .sidebar-header { padding: 25px 20px; text-align: center; border-bottom: 2px solid var(--skr-red); }
+        .sidebar-header h2 { margin: 0; color: var(--skr-red); font-size: 1.8em; font-weight: 700; letter-spacing: 1px; }
+        .sidebar-header span { color: #64748b; font-size: 0.85em; font-weight: 600; display: block; margin-top: 5px; }
+        .sidebar-menu { padding: 20px 15px; flex: 1; }
+        .sidebar-menu a { color: #475569; text-decoration: none; padding: 14px 18px; display: block; border-radius: 8px; margin-bottom: 8px; font-weight: 600; transition: all 0.2s; }
+        .sidebar-menu a:hover { background: #f8fafc; color: var(--skr-red); }
+        .sidebar-menu a.active { background: var(--skr-red); color: white; box-shadow: 0 4px 6px rgba(198, 40, 40, 0.2); }
+        .sidebar-footer { padding: 20px; border-top: 1px solid #e5e7eb; background: #f8fafc; }
+        .user-info-box { background: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; }
+        .top-header { background: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 5px rgba(0,0,0,0.05); z-index: 5; }
+        .top-header h1 { margin: 0; font-size: 1.2em; color: var(--skr-dark); display: flex; align-items: center; gap: 10px; }
+        .top-header h1::before { content: ""; display: inline-block; width: 4px; height: 20px; background: var(--skr-red); border-radius: 2px; }
+        .main-content { padding: 30px; overflow-y: auto; flex: 1; }
+
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 4px solid var(--skr-red); }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #475569; }
+        .input-field { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; box-sizing: border-box; font-family: 'Sarabun'; }
+        
+        .btn { padding: 10px 20px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-family: 'Sarabun'; }
+        .btn-blue { background: #0284c7; width: 100%; } .btn-blue:hover { background: #0369a1; }
+        .btn-red { background: #ef4444; width: 100%; } 
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background-color: #f8fafc; color: #475569; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header"><h2>SKR HUB</h2><span>สกลราชวิทยานุกูล</span></div>
+        <div class="sidebar-menu">
+            <a href="dashboard.html">📊 ภาพรวม (Feed)</a>
+            <a href="attendance.html">📝 เช็คชื่อ (Attendance)</a>
+            <a href="users.html" class="active" id="menu-users">👥 จัดการผู้ใช้ (Admin)</a>
+        </div>
+        <div class="sidebar-footer">
+            <div class="user-info-box">
+                <p id="user-info" style="font-weight: bold; font-size: 1.1em; color: var(--skr-dark);"></p>
+                <p id="user-role-room" style="margin: 5px 0 0 0; font-size: 0.85em; color: #64748b;"></p>
+            </div>
+            <button class="btn btn-red" onclick="logout()">ออกจากระบบ</button>
+        </div>
+    </div>
+
+    <div class="main-wrapper">
+        <div class="top-header">
+            <h1>ระบบบริหารจัดการสถานศึกษา (School Management System)</h1>
+            <div style="font-weight: bold; color: var(--skr-red);">ภาคเรียนที่ 1 / 2569</div>
+        </div>
+
+        <div class="main-content">
+            <div style="display: flex; gap: 20px;">
+                <div class="card" style="flex: 1; max-width: 400px; height: fit-content;">
+                    <h3 style="margin-top: 0; color: var(--skr-red);">สร้างบัญชีผู้ใช้ใหม่</h3>
+                    <div class="input-group">
+                        <label>รหัสประจำตัว (Username)</label> <input type="text" id="new-username" class="input-field" placeholder="เช่น M5-10-01">
+                    </div>
+                    <div class="input-group">
+                        <label>รหัสผ่าน (Password)</label> <input type="password" id="new-password" class="input-field" placeholder="อย่างน้อย 6 ตัวอักษร">
+                    </div>
+                    <div class="input-group">
+                        <label>ชื่อ-นามสกุล (DisplayName)</label> <input type="text" id="new-display" class="input-field" placeholder="เด็กชายสมหมาย ใจดี">
+                    </div>
+                    <div class="input-group" id="role-select-group">
+                        <label>ระดับสิทธิ์ (Role)</label>
+                        <select id="new-role" class="input-field">
+                            <option value="student">Student (นักเรียน)</option>
+                            <option value="head_student">Head Student (หัวหน้าห้อง)</option>
+                            <option value="admin">Admin (ครู/ผู้ดูแล)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>ห้องเรียน (Room)</label> <input type="text" id="new-room" class="input-field" placeholder="เช่น M5-10 (เว้นว่างได้ถ้าเป็น Admin)">
+                    </div>
+                    <button class="btn btn-blue" id="btn-create" onclick="createUser()">+ สร้างบัญชี</button>
+                    <p id="msg-status" style="margin-top: 15px; font-weight: bold;"></p>
+                </div>
+
+                <div class="card" style="flex: 2;">
+                    <h3 style="margin-top: 0;">รายชื่อผู้ใช้ในระบบ</h3>
+                    <table>
+                        <thead><tr><th>Username</th><th>ชื่อ-นามสกุล</th><th>Role</th><th>Room</th></tr></thead>
+                        <tbody id="user-list"><tr><td colspan="4">กำลังโหลดข้อมูล...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyD4KyTB1fWfsSAeW1oqkpJNGjdboJhH71Q", authDomain: "krumaneerus.firebaseapp.com", databaseURL: "https://krumaneerus-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "krumaneerus", storageBucket: "krumaneerus.firebasestorage.app", messagingSenderId: "485882448528", appId: "1:485882448528:web:ac6204c6c7043f04ffa615" };
+        firebase.initializeApp(firebaseConfig); const auth = firebase.auth(); const db = firebase.firestore(); const functions = firebase.functions(); const DOMAIN = "@school.local";
+        let currentUserRole = 'user'; let currentUserRoom = 'None';
+
+        auth.onAuthStateChanged(async user => {
+            if (!user) window.location.replace("index.html");
+            else {
+                try {
+                    const token = await user.getIdTokenResult(); currentUserRole = token.claims.role || 'user'; currentUserRoom = token.claims.room || 'None';
+                    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin' && currentUserRole !== 'head_student') window.location.replace("dashboard.html");
+
+                    let rDisplay = currentUserRole === 'super_admin' ? "ผู้อำนวยการ" : (currentUserRole === 'admin' ? "คุณครู" : "หัวหน้าห้อง");
+                    document.getElementById('user-info').innerText = user.displayName || user.email.replace(DOMAIN, '');
+                    document.getElementById('user-role-room').innerText = `สถานะ: ${rDisplay} | ห้อง: ${currentUserRoom}`;
+
+                    if (currentUserRole === 'head_student') {
+                        document.getElementById('role-select-group').style.display = 'none'; document.getElementById('new-role').value = 'student';
+                        document.getElementById('new-room').value = currentUserRoom; document.getElementById('new-room').disabled = true;
+                    }
+                    loadUsers();
+                } catch(e) { console.error(e); }
+            }
+        });
+        function logout() { auth.signOut().then(() => window.location.replace("index.html")); }
+
+        async function loadUsers() {
+            const listContainer = document.getElementById('user-list');
+            try {
+                let snapshot;
+                if (currentUserRole === 'super_admin' || currentUserRole === 'admin') snapshot = await db.collection("users").orderBy("createdAt", "desc").get();
+                else if (currentUserRole === 'head_student') snapshot = await db.collection("users").where("room", "==", currentUserRoom).get();
+
+                if (snapshot.empty) return listContainer.innerHTML = "<tr><td colspan='4'>ไม่พบข้อมูลผู้ใช้</td></tr>";
+                let html = "";
+                snapshot.forEach(doc => { const data = doc.data(); html += `<tr><td>${data.username}</td><td>${data.displayName || '-'}</td><td>${data.role}</td><td>${data.room || 'None'}</td></tr>`; });
+                listContainer.innerHTML = html;
+            } catch (error) { listContainer.innerHTML = "<tr><td colspan='4' style='color:red;'>ดึงข้อมูลล้มเหลว</td></tr>"; }
+        }
+
+        async function createUser() {
+            const u = document.getElementById('new-username').value; const p = document.getElementById('new-password').value; const d = document.getElementById('new-display').value; const r = document.getElementById('new-role').value; const rm = document.getElementById('new-room').value;
+            const msg = document.getElementById('msg-status'); const btn = document.getElementById('btn-create');
+            if (!u || !p) { msg.innerText = "❌ กรุณากรอก Username และ Password"; msg.style.color = "red"; return; }
+            btn.disabled = true; btn.innerText = "กำลังสร้าง..."; msg.innerText = "";
+            
+            try {
+                const createUserFn = functions.httpsCallable('createUserWithRole');
+                const result = await createUserFn({ username: u, password: p, displayName: d, targetRole: r, room: rm });
+                msg.innerText = "✅ " + result.data.message; msg.style.color = "green";
+                document.getElementById('new-username').value = ""; document.getElementById('new-password').value = ""; document.getElementById('new-display').value = "";
+                loadUsers();
+            } catch (error) { msg.innerText = "❌ ผิดพลาด: " + error.message; msg.style.color = "red"; }
+            btn.disabled = false; btn.innerText = "+ สร้างบัญชี";
+        }
+    </script>
+</body>
+</html>
