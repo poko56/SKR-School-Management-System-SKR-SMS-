@@ -88,7 +88,10 @@
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>ห้องเรียน (Room)</label> <input type="text" id="new-room" class="input-field" placeholder="เช่น M5-10 (เว้นว่างได้ถ้าเป็น Admin)">
+                        <label>ห้องเรียน (Room)</label>
+                        <select id="new-room" class="input-field" style="cursor:pointer;">
+                            <option value="">— เลือกห้อง —</option>
+                        </select>
                     </div>
                     <button class="btn btn-blue" id="btn-create" onclick="createUser()">+ สร้างบัญชี</button>
                     <p id="msg-status" style="margin-top: 15px; font-weight: bold;"></p>
@@ -115,21 +118,55 @@
             else {
                 try {
                     const token = await user.getIdTokenResult(); currentUserRole = token.claims.role || 'user'; currentUserRoom = token.claims.room || 'None';
-                    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin' && currentUserRole !== 'head_student') window.location.replace("dashboard.html");
+                    // Student ไม่มีสิทธิ์เข้าหน้านี้ (แค่ Admin / Head Student)
+                    if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin' && currentUserRole !== 'head_student') {
+                        window.location.replace("dashboard.html");
+                        return;
+                    }
 
                     let rDisplay = currentUserRole === 'super_admin' ? "ผู้อำนวยการ" : (currentUserRole === 'admin' ? "คุณครู" : "หัวหน้าห้อง");
                     document.getElementById('user-info').innerText = user.displayName || user.email.replace(DOMAIN, '');
                     document.getElementById('user-role-room').innerText = `สถานะ: ${rDisplay} | ห้อง: ${currentUserRoom}`;
 
                     if (currentUserRole === 'head_student') {
-                        document.getElementById('role-select-group').style.display = 'none'; document.getElementById('new-role').value = 'student';
-                        document.getElementById('new-room').value = currentUserRoom; document.getElementById('new-room').disabled = true;
+                        document.getElementById('role-select-group').style.display = 'none'; 
+                        document.getElementById('new-role').value = 'student';
+                        // หัวหน้าห้อง: ล็อคห้องตัวเอง
+                        const rm = document.getElementById('new-room');
+                        rm.innerHTML = `<option value="${currentUserRoom}">${currentUserRoom}</option>`;
+                        rm.disabled = true;
+                    } else {
+                        // admin / super_admin: โหลด dropdown ห้องทั้งหมด
+                        loadRoomDropdown();
                     }
                     loadUsers();
                 } catch(e) { console.error(e); }
             }
         });
         function logout() { auth.signOut().then(() => window.location.replace("index.html")); }
+
+        // โหลด dropdown ห้องเรียนจาก Firestore
+        async function loadRoomDropdown() {
+            const sel = document.getElementById('new-room');
+            sel.innerHTML = '<option value="">— กำลังโหลด... —</option>';
+            try {
+                const snap = await db.collection('rooms').orderBy('number').get();
+                // None อยู่อันดับแรก เพื่อใช้สำหรับ Admin/Super Admin
+                let options = '<option value="None">— None (Admin/แอดมิน) —</option>';
+                if (!snap.empty) {
+                    options += snap.docs.map(d => `<option value="${d.id}">${d.id}</option>`).join('');
+                }
+                sel.innerHTML = '<option value="">— เลือกห้อง —</option>' + options;
+            } catch(e) {
+                sel.innerHTML = '<option value="">โหลดไม่สำเร็จ</option>';
+                console.error('loadRoomDropdown:', e);
+            }
+        }
+
+        function escapeHTML(str) { 
+            if (!str) return ""; 
+            return str.replace(/[&<>'"]/g, tag => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"}[tag] || tag)); 
+        }
 
         async function loadUsers() {
             const listContainer = document.getElementById('user-list');
@@ -140,7 +177,7 @@
 
                 if (snapshot.empty) return listContainer.innerHTML = "<tr><td colspan='4'>ไม่พบข้อมูลผู้ใช้</td></tr>";
                 let html = "";
-                snapshot.forEach(doc => { const data = doc.data(); html += `<tr><td>${data.username}</td><td>${data.displayName || '-'}</td><td>${data.role}</td><td>${data.room || 'None'}</td></tr>`; });
+                snapshot.forEach(doc => { const data = doc.data(); html += `<tr><td>${escapeHTML(data.username)}</td><td style="word-wrap:break-word; max-width:150px;">${escapeHTML(data.displayName || '-')}</td><td>${escapeHTML(data.role)}</td><td>${escapeHTML(data.room || 'None')}</td></tr>`; });
                 listContainer.innerHTML = html;
             } catch (error) { listContainer.innerHTML = "<tr><td colspan='4' style='color:red;'>ดึงข้อมูลล้มเหลว</td></tr>"; }
         }

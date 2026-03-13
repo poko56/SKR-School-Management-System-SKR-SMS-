@@ -1,29 +1,52 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ฟังก์ชันช่วยเช็คว่าเป็น Super Admin ไหม
+  
+    // Helpers
+    function isAuthenticated() {
+      return request.auth != null;
+    }
     function isSuperAdmin() {
-      return request.auth.token.role == 'super_admin';
+      return isAuthenticated() && request.auth.token.role == 'super_admin';
+    }
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'admin';
+    }
+    function isHeadStudent() {
+      return isAuthenticated() && request.auth.token.role == 'head_student';
     }
 
-    // กฎสำหรับตาราง Users
+    // Default Rule: Deny all reads and writes unless overridden below
+    match /{document=**} {
+      allow write: if false; // ล็อกการเขียนจากหน้าบ้านทั้งหมด 100%
+      allow read: if false;
+    }
+
+    // 1. General Data (อ่านได้ทุกคนที่ล็อคอินเข้าสู่ระบบ)
+    match /announcements/{docId} {
+      allow read: if isAuthenticated();
+    }
+    match /attendance/{docId} {
+      allow read: if isAuthenticated();
+    }
+    match /settings/{docId} {
+      allow read: if isAuthenticated();
+    }
+    match /rooms/{docId} {
+      allow read: if isAuthenticated(); // ทุกคนที่ Login อ่านได้ (สำหรับ Dropdown เลือกห้อง)
+    }
+    
+    // 2. Sensitive Admins Data (เฉพาะ Super Admin และ Admin)
+    match /system_logs/{docId} {
+      allow read: if isSuperAdmin() || isAdmin();
+    }
+    match /edit_requests/{docId} {
+      allow read: if isSuperAdmin() || isAdmin();
+    }
+
+    // 3. User Accounts (จัดการผู้ใช้ ให้อ่านได้ตามสิทธิ์ชั้นการปกครอง)
     match /users/{userId} {
-      // ดูข้อมูลได้ทุกคน (ที่ล็อกอิน)
-      allow read: if request.auth != null;
-      
-      // ห้ามใครเขียน/แก้ผ่านหน้าบ้านโดยตรง (ต้องใช้ Function เท่านั้น)
-      allow write: if false; 
-    }
-
-    // กฎสำหรับตาราง Contents (เช่น ข้อมูลฟาร์ม/บทความ)
-    match /contents/{docId} {
-      allow read: if true;
-      
-      // Super Admin แก้ได้ทุกอย่าง
-      allow write: if isSuperAdmin();
-      
-      // เงื่อนไขอื่นๆ สำหรับ User ทั่วไป (เช่น แก้ของตัวเองได้) ใส่เพิ่มตรงนี้...
+      allow read: if isSuperAdmin() || isAdmin() || isHeadStudent() || request.auth.uid == userId;
     }
   }
 }

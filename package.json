@@ -1,0 +1,27 @@
+{
+  "name": "skr-school-management-system-skr-sms-",
+  "version": "1.0.0",
+  "description": "**SKR-SMS** คือเว็บแอปพลิเคชันบริหารจัดการสถานศึกษาแบบหลายหน้า (Multi-Page) ทำงานบนระบบ Firebase แบ่งสิทธิ์ผู้ใช้งาน 3 ระดับ (Super Admin, Admin, Student) สงวนสิทธิ์การสร้างบัญชีผู้ใช้ใหม่ให้เฉพาะ Super Admin เท่านั้น มาพร้อมกระดานประกาศข่าวสารส่วนกลางแบบ Real-time เพื่อการสื่อสารภายในโรงเรียนที่มีประสิทธิภาพและรวดเร็ว",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/poko56/SKR-School-Management-System-SKR-SMS-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/poko56/SKR-School-Management-System-SKR-SMS-/issues"
+  },
+  "homepage": "https://github.com/poko56/SKR-School-Management-System-SKR-SMS-#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  }
+}

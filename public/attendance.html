@@ -87,14 +87,22 @@
                     <label style="color: #ef4444; font-weight: bold;">ประกาศวันหยุด:</label> <input type="date" id="holiday-date" class="input-field">
                     <button class="btn btn-red" onclick="setHoliday(true)">ตั้งเป็นวันหยุด</button> <button class="btn btn-gray" onclick="setHoliday(false)">ยกเลิกวันหยุด</button>
                 </div>
+                <div style="margin-top: 15px; border-top: 1px dashed #fca5a5; padding-top: 15px;">
+                    <label style="color: #d97706; font-weight: bold;">ปลดล็อกวันหยุด (Override):</label>
+                    <button class="btn btn-orange" onclick="enableOverride()" id="btn-override">🔓 เปิดให้เช็คชื่อ (กรณีพิเศษ)</button>
+                    <span id="override-status" style="margin-left: 10px; font-weight:bold; color:#16a34a; display:none;">✅ ปลดล็อกการเช็คชื่อสำหรับวันนี้แล้วกำลังบันทึกด้วยสิทธิ์พิเศษ</span>
+                </div>
             </div>
 
             <div id="checker-section" style="display: none;">
                 <h2>ระบบเช็คชื่อนักเรียน</h2>
                 <div class="filter-group">
                     <label>วันที่:</label> <input type="date" id="date-select" class="input-field" required>
-                    <label>ห้องเรียน:</label> <input type="text" id="room-select" class="input-field" placeholder="เช่น M5-10">
-                    <button class="btn btn-blue" onclick="loadStudents()">ดึงข้อมูล</button>
+                    <label>ห้องเรียน:</label>
+                    <select id="room-select" class="input-field" style="cursor:pointer; min-width:140px;">
+                      <option value="">— เลือกห้อง —</option>
+                    </select>
+                    <button class="btn btn-blue" onclick="loadStudents()">🔍 ดึงข้อมูล/เริ่มเช็คชื่อ</button>
                 </div>
 
                 <div class="card" id="attendance-card" style="display: none;">
@@ -136,20 +144,51 @@
                     document.getElementById('user-role-room').innerText = `สถานะ: ${rDisplay} | ห้อง: ${room}`;
                     
                     document.getElementById('date-select').value = getThaiDateString(); document.getElementById('holiday-date').value = getThaiDateString();
+                    
                     if (role === 'super_admin' || role === 'admin') {
-                        document.getElementById('menu-users').style.display = 'block'; document.getElementById('checker-section').style.display = 'block';
-                        document.getElementById('admin-settings').style.display = 'block'; document.getElementById('admin-approvals').style.display = 'block';
+                        document.getElementById('menu-users').style.display = 'block'; 
+                        document.getElementById('checker-section').style.display = 'block';
+                        document.getElementById('admin-settings').style.display = 'block'; 
+                        document.getElementById('admin-approvals').style.display = 'block';
                         loadSettings(); loadPendingApprovals(); 
+                        loadRoomOptions(); // โหลด dropdown ห้องเรียน
                     } else if (role === 'head_student') {
-                        document.getElementById('menu-users').style.display = 'block'; document.getElementById('checker-section').style.display = 'block';
-                        document.getElementById('date-select').disabled = true; document.getElementById('room-select').value = room; document.getElementById('room-select').disabled = true;
+                        document.getElementById('menu-users').style.display = 'block'; 
+                        document.getElementById('checker-section').style.display = 'block';
+                        document.getElementById('date-select').disabled = true; 
+                        // หัวหน้าห้อง: ตั้งค่า + ล็อคล่วงหน้า dropdown
+                        const sel = document.getElementById('room-select');
+                        sel.innerHTML = `<option value="${room}">${room}</option>`;
+                        sel.disabled = true;
                     } else if (role === 'student') {
+                        // Student ไม่มีสิทธิ์เข้าหน้าเช็คชื่อตรงๆ แต่มี UI ข้างในเพื่อดูประวัติ เลยปล่อยให้แสดง student-section แทน
                         document.getElementById('student-section').style.display = 'block'; loadMyHistory();
                     }
                 } catch(e) { console.error(e); }
             }
         });
         function logout() { auth.signOut().then(() => window.location.replace("index.html")); }
+
+        // โหลดรายชื่อห้องจาก Firestore collection 'rooms'
+        async function loadRoomOptions() {
+            const sel = document.getElementById('room-select');
+            sel.innerHTML = '<option value="">— กำลังโหลด... —</option>';
+            try {
+                const snap = await db.collection('rooms').orderBy('number').get();
+                if (snap.empty) {
+                    // fallback: ดึงจากนักเรียนถ้าไม่มี rooms collection
+                    const stuSnap = await db.collection('users').where('role', '==', 'student').get();
+                    const rooms = [...new Set(stuSnap.docs.map(d => d.data().room).filter(r => r && r !== 'None'))].sort();
+                    sel.innerHTML = '<option value="">— เลือกห้อง —</option>' + rooms.map(r => `<option value="${r}">${r}</option>`).join('');
+                    return;
+                }
+                sel.innerHTML = '<option value="">— เลือกห้อง —</option>' +
+                    snap.docs.map(d => `<option value="${d.id}">${d.id}</option>`).join('');
+            } catch(e) {
+                sel.innerHTML = '<option value="">โหลดไม่สำเร็จ — ลองใหม่</option>';
+                console.error('loadRoomOptions:', e);
+            }
+        }
 
         async function setHoliday(isHoliday) {
             const date = document.getElementById('holiday-date').value; if (!date) return alert("กรุณาเลือกวันที่");
@@ -159,6 +198,13 @@
         async function saveSettings() {
             const timeVal = document.getElementById('cutoff-time').value; if(!timeVal) return alert("กรุณาระบุเวลา");
             try { await functions.httpsCallable('updateAttendanceSettings')({ cutoffTime: timeVal }); alert("✅ บันทึกเวลาสำเร็จ!"); } catch (e) { alert("❌ Error: " + e.message); }
+        }
+
+        let isOverrideEnabled = false;
+        function enableOverride() {
+            isOverrideEnabled = true;
+            document.getElementById('override-status').style.display = 'inline';
+            document.getElementById('btn-override').disabled = true;
         }
 
         function loadPendingApprovals() {
@@ -172,11 +218,22 @@
         }
         async function approveEdit(reqId) { if (!confirm("ยืนยันการอนุมัติแก้ไข?")) return; try { await functions.httpsCallable('approveEditAttendance')({ reqId: reqId }); alert("✅ อนุมัติสำเร็จ!"); } catch(e) { alert("❌ Error: " + e.message); } }
 
+        function escapeHTML(str) { 
+            if (!str) return ""; 
+            return str.replace(/[&<>'"]/g, tag => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"}[tag] || tag)); 
+        }
+
         async function loadStudents() {
+            const btnLoad = document.getElementById('btn-load');
+            if (btnLoad) { btnLoad.disabled = true; btnLoad.innerText = "⏳ กำลังโหลด..."; }
+
             const dateInput = document.getElementById('date-select').value; const roomInput = document.getElementById('room-select').value.trim();
-            if (!roomInput) return alert("กรุณาระบุห้องเรียน");
+            if (!roomInput) {
+                if (btnLoad) { btnLoad.disabled = false; btnLoad.innerText = "🔍 ดึงข้อมูล/เริ่มเช็คชื่อ"; }
+                return alert("กรุณาระบุห้องเรียน");
+            }
             const listContainer = document.getElementById('student-list'); listContainer.innerHTML = "<tr><td colspan='3'>กำลังดึงข้อมูล...</td></tr>";
-            document.getElementById('attendance-card').style.display = 'block'; document.getElementById('room-title').innerText = `เช็คชื่อห้อง ${roomInput} (ประจำวันที่ ${dateInput})`;
+            document.getElementById('attendance-card').style.display = 'block'; document.getElementById('room-title').innerText = `เช็คชื่อห้อง ${escapeHTML(roomInput)} (ประจำวันที่ ${escapeHTML(dateInput)})`;
             try {
                 const studentSnap = await db.collection("users").where("role", "==", "student").where("room", "==", roomInput).get();
                 const attDoc = await db.collection("attendance").doc(`${dateInput}_${roomInput}`).get();
@@ -191,7 +248,7 @@
                 if (studentSnap.empty) return listContainer.innerHTML = "<tr><td colspan='3' style='text-align:center; color:red;'>ไม่พบนักเรียนห้องนี้</td></tr>";
                 studentSnap.forEach(doc => {
                     const student = doc.data(); const uid = doc.id; currentStudents.push(uid); const status = existingRecords[uid] || "present"; 
-                    html += `<tr><td>${student.username}</td><td>${student.displayName}</td><td class="radio-group">
+                    html += `<tr><td>${escapeHTML(student.username)}</td><td style="word-wrap:break-word; max-width:150px;">${escapeHTML(student.displayName)}</td><td class="radio-group">
                                 <label class="status-present"><input type="radio" name="status_${uid}" value="present" ${status === 'present' ? 'checked' : ''}> มาเรียน</label>
                                 <label class="status-late"><input type="radio" name="status_${uid}" value="late" ${status === 'late' ? 'checked' : ''}> สาย</label>
                                 <label class="status-absent"><input type="radio" name="status_${uid}" value="absent" ${status === 'absent' ? 'checked' : ''}> ขาด</label>
@@ -200,6 +257,9 @@
                 });
                 listContainer.innerHTML = html;
             } catch (error) { listContainer.innerHTML = "<tr><td colspan='3' style='color:red;'>Error โหลดข้อมูล</td></tr>"; }
+            finally {
+                if (btnLoad) { btnLoad.disabled = false; btnLoad.innerText = "🔍 ดึงข้อมูล/เริ่มเช็คชื่อ"; }
+            }
         }
 
         async function saveAttendance() {
@@ -211,8 +271,11 @@
                     await functions.httpsCallable('requestEditAttendance')({ date: document.getElementById('date-select').value, room: document.getElementById('room-select').value.trim(), records: attendanceData });
                     alert("✅ ส่งคำขอแก้ไขเรียบร้อย! กรุณารอแอดมินอีกท่านอนุมัติ");
                 } else {
-                    const res = await functions.httpsCallable('submitAttendance')({ date: document.getElementById('date-select').value, room: document.getElementById('room-select').value.trim(), records: attendanceData });
+                    const res = await functions.httpsCallable('submitAttendance')({ date: document.getElementById('date-select').value, room: document.getElementById('room-select').value.trim(), records: attendanceData, isOverride: isOverrideEnabled });
                     alert("✅ " + res.data.message);
+                    isOverrideEnabled = false; // รีเซ็ตหลังบันทึกเสร็จ
+                    if (document.getElementById('override-status')) document.getElementById('override-status').style.display = 'none';
+                    if (document.getElementById('btn-override')) document.getElementById('btn-override').disabled = false;
                 }
             } catch (error) { alert("❌ ผิดพลาด: " + error.message); } finally { btn.innerText = originalText; btn.className = originalClass; btn.disabled = false; }
         }

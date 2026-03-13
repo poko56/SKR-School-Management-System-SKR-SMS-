@@ -58,8 +58,16 @@ exports.createUserWithRole = functions.https.onCall(async (req) => {
   const {username, password, displayName, targetRole, room} = payload;
   let finalRoom = room || "None";
 
-  if (role === "super_admin" || role === "admin") {
-    // ok
+  if (role === "super_admin") {
+    // ok - Super Admin สร้างใครก็ได้
+  } else if (role === "admin") {
+    if (targetRole === "admin" || targetRole === "super_admin") {
+      throw new functions.https.HttpsError(
+          "permission-denied",
+          "เฉพาะ Super Admin ที่สามารถสร้างบัญชี Admin ได้",
+      );
+    }
+    // Admin สร้าง Student และ Head Student ได้
   } else if (role === "head_student") {
     if (targetRole !== "student") {
       throw new functions.https.HttpsError(
@@ -132,17 +140,37 @@ exports.submitAttendance = functions.https.onCall(async (req) => {
     throw new functions.https.HttpsError("permission-denied", "ไม่มีสิทธิ์");
   }
 
-  const {date, room, records} = req.data || {};
+  const {date, room, records, isOverride} = req.data || {};
+
+  // ป้องกัน Head Student แฮกข้ามห้อง (Inspect Element)
+  if (role === "head_student" && room !== req.auth.token.room) {
+    throw new functions.https.HttpsError(
+        "permission-denied",
+        "ไม่มีสิทธิ์เช็คชื่อข้ามห้องตัวเอง!",
+    );
+  }
+
   const holDoc = await db.collection("settings").doc("holidays").get();
   if (holDoc.exists && holDoc.data()[date] === true) {
     throw new functions.https.HttpsError(
         "failed-precondition",
-        "วันหยุด!",
+        "วันนี้ประกาศเป็นวันหยุดงดเช็คชื่อ",
     );
   }
 
   const offset = 7 * 60 * 60 * 1000;
   const bkkTime = new Date(new Date().getTime() + offset);
+
+  // แปลง string 'YYYY-MM-DD' ให้เป็น Date Obj เพื่อหาวันในสัปดาห์
+  const checkDateObj = new Date(date);
+  const dayOfWeek = checkDateObj.getDay(); // 0 = Sunday, 6 = Saturday
+  if ((dayOfWeek === 0 || dayOfWeek === 6) && !isOverride) {
+    throw new functions.https.HttpsError(
+        "failed-precondition",
+        "วันนี้เป็นวันหยุดสุดสัปดาห์",
+    );
+  }
+
   const todayStr = bkkTime.toISOString().split("T")[0];
 
   if (role === "head_student" && date !== todayStr) {
@@ -227,6 +255,7 @@ exports.setHoliday = functions.https.onCall(async (req) => {
   return {success: true};
 });
 
+
 exports.requestEditAttendance = functions.https.onCall(async (req) => {
   const role = req.auth ? req.auth.token.role : null;
   const email = req.auth ? req.auth.token.email : "unknown";
@@ -246,7 +275,26 @@ exports.requestEditAttendance = functions.https.onCall(async (req) => {
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  await writeLog("REQ_EDIT", `ขอแก้ข้อมูลห้อง ${room} (${date})`, email);
+  // พยายามหาชื่อนักเรียนจาก UID ใน records เพื่อให้ Log ละเอียดขึ้น
+  const userIds = Object.keys(records);
+  let detailStr = "";
+  if (userIds.length > 0) {
+    try {
+      const uDoc = await db.collection("users").doc(userIds[0]).get();
+      if (uDoc.exists) {
+        const displayName = uDoc.data().displayName || uDoc.data().username;
+        detailStr = ` (เช่น แก้ไข: ${displayName})`;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  await writeLog(
+      "REQ_EDIT",
+      `ขอแก้ข้อมูลห้อง ${room} (${date})${detailStr}`,
+      email,
+  );
   return {success: true};
 });
 
@@ -288,4 +336,36 @@ exports.approveEditAttendance = functions.https.onCall(async (req) => {
   await reqRef.update({status: "approved", approvedBy: email});
   await writeLog("APPROVE_EDIT", `อนุมัติแก้ไขห้อง ${data.room}`, email);
   return {success: true};
+});
+
+exports.factoryReset = functions.https.onCall(async (req) => {
+  const role = req.auth ? req.auth.token.role : null;
+  const email = req.auth ? req.auth.token.email : "unknown";
+
+  if (role !== "super_admin") {
+    throw new functions.https.HttpsError(
+        "permission-denied",
+        "เฉพาะผู้อำนวยการ (Super Admin) เท่านั้น",
+    );
+  }
+
+  // ลบข้อมูลบาง Collection เพื่อรีเซ็ตระบบ
+  const collectionsToDelete = [
+    "attendance",
+    "announcements",
+    "system_logs",
+    "edit_requests",
+  ];
+
+  for (const colName of collectionsToDelete) {
+    const snapshot = await db.collection(colName).get();
+    const batch = db.batch();
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+  }
+
+  await writeLog("FACTORY_RESET", `รีเซ็ตล้างข้อมูลทั้งระบบ`, email);
+  return {success: true, message: "Factory Reset สมบูรณ์"};
 });

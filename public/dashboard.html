@@ -98,6 +98,11 @@
             <div class="log-box" id="admin-log-section">
                 <h3 style="margin-top: 0;">🕵️‍♂️ บันทึกประวัติการทำงานของระบบ (System Logs)</h3>
                 <div class="log-list" id="log-container"><p style="color: gray;">กำลังโหลด...</p></div>
+                
+                <div id="factory-reset-section" style="display: none; margin-top: 20px; border-top: 2px dashed #fca5a5; padding-top: 15px; text-align: right;">
+                    <span style="color: #ef4444; font-weight: bold; margin-right: 15px;">⚠️ เขตข้อมูลอันตราย:</span>
+                    <button class="btn btn-danger" style="width: auto; background-color:#7f1d1d;" onclick="factoryReset()">💥 ล้างข้อมูลทั้งระบบ (Factory Reset)</button>
+                </div>
             </div>
         </div>
     </div>
@@ -117,12 +122,30 @@
                     document.getElementById('user-info').innerText = user.displayName || user.email.replace(DOMAIN, '');
                     document.getElementById('user-role-room').innerText = `สถานะ: ${roleDisplay} | ห้อง: ${room}`;
 
-                    if (role === 'super_admin' || role === 'admin' || role === 'head_student') document.getElementById('menu-users').style.display = 'block';
-                    if (role === 'super_admin' || role === 'admin') {
-                        document.getElementById('admin-post-section').style.display = 'block'; document.getElementById('admin-log-section').style.display = 'block';
-                        loadAdminStats(); loadSystemLogs(); 
-                    } else if (role === 'head_student') loadRoomStats(room); 
-                    else if (role === 'student') loadMyStats(user.uid, room); 
+                    // ซ่อนเมนูทั้งหมดก่อน แล้วค่อยเปิดตามสิทธิ์
+                    document.getElementById('menu-users').style.display = 'none';
+                    document.getElementById('admin-post-section').style.display = 'none';
+                    document.getElementById('admin-log-section').style.display = 'none';
+                    if(document.getElementById('factory-reset-section')) document.getElementById('factory-reset-section').style.display = 'none';
+
+                    if (role === 'super_admin') {
+                        document.getElementById('menu-users').style.display = 'block';
+                        document.getElementById('admin-post-section').style.display = 'block'; 
+                        document.getElementById('admin-log-section').style.display = 'block';
+                        if(document.getElementById('factory-reset-section')) document.getElementById('factory-reset-section').style.display = 'block';
+                        loadAdminStats(); loadSystemLogs();
+                    } else if (role === 'admin') {
+                        document.getElementById('menu-users').style.display = 'block';
+                        document.getElementById('admin-post-section').style.display = 'block'; 
+                        document.getElementById('admin-log-section').style.display = 'block';
+                        loadAdminStats(); loadSystemLogs();
+                    } else if (role === 'head_student') {
+                        document.getElementById('menu-users').style.display = 'block'; // Head Student เห็นเมนู Users ไว้เพิ่มเพื่อนเข้าห้องตัวเอง
+                        loadRoomStats(room); 
+                    } else if (role === 'student') {
+                        loadMyStats(user.uid, room); 
+                    }
+
                     loadRealtimeFeed();
                 } catch(e) { console.error(e); }
             }
@@ -158,13 +181,18 @@
             catch (e) { alert("❌ Error: " + e.message); } finally { btn.innerText = "โพสต์ประกาศ"; btn.disabled = false; }
         }
 
+        function escapeHTML(str) { 
+            if (!str) return ""; 
+            return str.replace(/[&<>'"]/g, tag => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"}[tag] || tag)); 
+        }
+
         function loadRealtimeFeed() {
             db.collection("announcements").orderBy("timestamp", "desc").onSnapshot(snap => {
                   if (snap.empty) return document.getElementById('feed-container').innerHTML = "<div class='feed-card'>ไม่มีประกาศ...</div>";
                   let html = "";
                   snap.forEach(doc => {
                       const data = doc.data(); const timeStr = data.timestamp ? data.timestamp.toDate().toLocaleString('th-TH') : "Now...";
-                      html += `<div class="feed-card"><div class="feed-header"><span style="color:var(--skr-red); font-weight:bold;">📢 แอดมิน: ${data.author.replace(DOMAIN, '')}</span><span>🕒 ${timeStr}</span></div><div class="feed-content">${data.content}</div></div>`;
+                      html += `<div class="feed-card" style="word-wrap:break-word;"><div class="feed-header"><span style="color:var(--skr-red); font-weight:bold;">📢 แอดมิน: ${escapeHTML(data.author.replace(DOMAIN, ''))}</span><span>🕒 ${escapeHTML(timeStr)}</span></div><div class="feed-content">${escapeHTML(data.content)}</div></div>`;
                   });
                   document.getElementById('feed-container').innerHTML = html;
               });
@@ -176,10 +204,22 @@
                 let html = "";
                 snap.forEach(doc => {
                     const data = doc.data(); const timeStr = data.timestamp ? data.timestamp.toDate().toLocaleString('th-TH') : "Now";
-                    html += `<div class="log-item"><span class="log-time">[${timeStr}]</span> <span class="log-actor">${data.actor.replace(DOMAIN, '')}</span> : <span>${data.desc}</span> <span class="log-action">(${data.action})</span></div>`;
+                    html += `<div class="log-item" style="word-wrap:break-word;"><span class="log-time">[${escapeHTML(timeStr)}]</span> <span class="log-actor">${escapeHTML(data.actor.replace(DOMAIN, ''))}</span> : <span>${escapeHTML(data.desc)}</span> <span class="log-action">(${escapeHTML(data.action)})</span></div>`;
                 });
                 document.getElementById('log-container').innerHTML = html;
             });
+        }
+
+        async function factoryReset() {
+            const pin = prompt("⚠️ คำเตือน: การกระทำนี้จะลบข้อมูลการเช็คชื่อ ประกาศ และ Log ทั้งหมด (ไม่สามารถกู้คืนได้)\nxพิมพ์ 'CONFIRM' เพื่อยืนยันการล้างระบบ:");
+            if (pin !== "CONFIRM") return alert("ยกเลิกการล้างข้อมูล");
+            try {
+                await functions.httpsCallable('factoryReset')();
+                alert("💥 ล้างข้อมูลสำเร็จ ระบบเหมือนใหม่แกะกล่องแล้ว");
+                window.location.reload();
+            } catch (e) {
+                alert("❌ เกิดข้อผิดพลาด ไม่สามารถล้างข้อมูลได้: " + e.message);
+            }
         }
     </script>
 </body>

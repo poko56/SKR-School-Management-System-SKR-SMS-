@@ -60,7 +60,7 @@
             auth.signInWithEmailAndPassword(u + DOMAIN, p)
                 .catch(err => {
                     console.error(err);
-                    alert("เข้าสู่ระบบไม่สำเร็จ: ตรวจสอบ Username และ Password");
+                    alert("ล็อคอินไม่สำเร็จ! ไม่พบบัญชีผู้ใช้นี้ หรือรหัสผ่านไม่ถูกต้อง");
                     btn.innerText = "เข้าสู่ระบบ"; btn.disabled = false;
                 });
         });
