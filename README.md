@@ -1,90 +1,68 @@
-# 🏫 SKR Hub - Enterprise School Management System
-**Sakonrajwittayanukul School (SKR) Management Platform**
+# 🏫 SKR HUB: ระบบบริหารจัดการการเช็คชื่ออัจฉริยะ (Smart Attendance System)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Firebase](https://img.shields.io/badge/Firebase-V9-FFCA28?logo=firebase&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-Cloud_Functions-339933?logo=nodedotjs&logoColor=white)
-![Architecture](https://img.shields.io/badge/Architecture-Serverless-ff69b4.svg)
+<div align="center">
+  <img src="https://komarev.com/ghpvc/?username=poko56&color=3B82F6&style=flat-square&label=PROJECT+VIEWS" alt="Project Views" />
+</div>
 
-**SKR Hub** คือแพลตฟอร์มบริหารจัดการสถานศึกษาแบบครบวงจร (School Management System) ที่ถูกออกแบบมาเพื่อทำ Digital Transformation ให้กับระบบการเช็คชื่อและจัดการข้อมูลของโรงเรียนสกลราชวิทยานุกูล ด้วยสถาปัตยกรรมแบบ Serverless บน Firebase แพลตฟอร์มนี้เน้นความปลอดภัยของข้อมูลสูงสุด (Data Integrity) การทำงานแบบเรียลไทม์ และระบบตรวจสอบย้อนหลังที่โปร่งใส
-
----
-
-## 🏗️ System Architecture & Tech Stack
-
-โปรเจกต์นี้ใช้สถาปัตยกรรมแบบ **Client-Serverless** เพื่อลดภาระการดูแลเซิร์ฟเวอร์ และรองรับการสเกล (Scalability) ในอนาคต
-* **Frontend:** HTML5, CSS3, Vanilla JavaScript (ออกแบบโครงสร้างให้พร้อมต่อยอดไปใช้ Frameworks อย่าง React, Vue หรือ Angular ในอนาคต)
-* **Backend:** Firebase Cloud Functions (Node.js) ทำหน้าที่เป็น API Gateway และ Business Logic Layer
-* **Database:** Firebase Cloud Firestore (NoSQL) สำหรับข้อมูลที่ต้องการความรวดเร็วและ Real-time
-* **Authentication:** Firebase Authentication ผสานระบบ Custom User Claims สำหรับจัดการสิทธิ์ (RBAC)
+<div align="center">
+  [![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=25&pause=1000&color=3B82F6&center=true&vCenter=false&width=600&lines=SOFTWARE+DEVELOPER;IOT+%26+HARDWARE+ENTHUSIAST;CREATIVE+VISUAL+DIRECTOR;COMPUTER+TECHNOLOGY+STUDENT+%40KMITL)](https://git.io/typing-svg)
+</div>
 
 ---
 
-## 🌟 Core Modules & Detailed Features
+<div align="center">
+  ## 💣 อินโฟกราฟิก: โครงสร้างระบบทั้งหมด (Overall System Workflow)
+</div>
 
-### 1. 🔐 Role-Based Access Control (RBAC) & Authentication
-ระบบจัดการสิทธิ์ผู้ใช้งานที่แบ่งออกเป็น 4 ระดับ โดยใช้ Firebase Custom Claims เพื่อฝังยศ (Role) ลงใน Token ป้องกันการปลอมแปลงสิทธิ์จากฝั่ง Client 100%
-* **Super Admin (ผู้อำนวยการ):** มีอำนาจสูงสุด (Root Access) สามารถล้างข้อมูล (Factory Reset), สร้างบัญชี Admin, และ Override กฎเกณฑ์ทุกอย่างในระบบได้
-* **Admin (ครูผู้ดูแล):** จัดการตั้งค่าเวลาเช็คชื่อ ประกาศวันหยุด และโพสต์ข่าวสารได้
-* **Head Student (หัวหน้าห้อง):** ถูกล็อกสิทธิ์ให้ทำรายการ (เช็คชื่อ/สร้างบัญชีลูกบ้าน) ได้เฉพาะภายใน `room` ของตัวเองเท่านั้น
-* **Student (นักเรียน):** Read-only Access ดูประกาศและสถิติของตนเอง
+<div align="center">
+  <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4520-a447-11eb-908a-139a6edaec5c.gif" width="100%" alt="SKR HUB Overall System Workflow">
+</div>
 
-### 2. 📝 Smart Time-Bound Attendance System
-ระบบเช็คชื่อที่ไม่ได้มีแค่การบันทึกข้อมูล แต่มี Business Logic ควบคุมเวลาอย่างเข้มงวด:
-* **Time Synchronization:** หลังบ้านใช้เวลามาตรฐาน (BKK Time `UTC+7`) ป้องกันนักเรียนโกงเวลาจากเครื่อง Client
-* **Cut-off Engine:** แอดมินสามารถกำหนดเวลาปิดรับเช็คชื่อรายวันได้ (เช่น 08:30 น.) หากเกินเวลา ระบบหลังบ้านจะปฏิเสธ Transaction ทันที
-* **Holiday & Weekend Blocker:** ระบบตรวจจับวันหยุดสุดสัปดาห์ (เสาร์-อาทิตย์) และวันหยุดพิเศษที่แอดมินประกาศ เพื่อล็อกการเช็คชื่ออัตโนมัติ
-* **Force Open (Override):** สวิตช์ฉุกเฉินสำหรับแอดมิน เพื่อเปิดการเช็คชื่อในวันหยุดเป็นกรณีพิเศษ
+*ภาพอินโฟกราฟิกแบบ 3D Isometric ( image_2.png) นี้ อธิบายโครงสร้างระบบบริหารจัดการการเช็คชื่อทั้งหมด ( image_2.png) ของ SKR Hub ในมุมกว้าง โดยแบ่งเป็น 4 ส่วนหลัก:*
 
-### 3. 🛡️ Dual-Approval Anti-Fraud Engine (ระบบอนุมัติ 2 ขั้นตอน)
-เพื่อความโปร่งใสสูงสุดในการแก้ไขข้อมูลที่ถูกบันทึกไปแล้ว:
-* หาก Admin ต้องการแก้ไขประวัติการเช็คชื่อย้อนหลัง ระบบจะไม่บันทึกลง Database ทันที
-* ระบบจะสร้างเอกสารใน Collection `edit_requests` (สถานะ Pending)
-* ต้องใช้บัญชี Admin ท่านอื่น หรือ Super Admin เข้ามากด `Approve` ระบบถึงจะทำ Trigger นำข้อมูลใหม่ไปเขียนทับข้อมูลเดิม
-
-### 4. 🕵️‍♂️ Comprehensive System Audit Logs
-ทุก Action ที่สำคัญในระบบจะถูกบันทึกลง `system_logs` โดยอัตโนมัติผ่าน Cloud Functions (Client ไม่มีสิทธิ์ยุ่งกับ Log):
-* บันทึกข้อมูล: `Action Type`, `Description` (รวมถึงชื่อนักเรียนที่ถูกแก้ไขข้อมูลแบบรายบุคคล), `Actor` (อีเมลผู้กระทำ), และ `Timestamp`
-* ประโยชน์: เพื่อทำ Audit Trail ป้องกันการแอบอ้าง หรือตรวจสอบหาผู้ที่ลบ/แก้ไขข้อมูลผิดพลาด
-
-### 5. 📡 Real-time Announcement Feed
-ระบบกระดานข่าวที่ใช้ `onSnapshot` Listener ของ Firestore ทันทีที่ Admin กดโพสต์ข้อความ ข้อมูลจะถูก Push ไปยัง Client ของนักเรียนทุกคนที่เปิดเว็บอยู่แบบ Real-time (Latency < 500ms)
+1.  **ROLE-BASED ACCESS CONTROL (RBAC):** แสดงยศผู้ใช้งานทั้ง 4 ระดับ (Super Admin, Admin, Head Student, Student) เชื่อมต่อกับสิทธิ์การเข้าถึงเมนูต่างๆ บน Dashboard อย่างชัดเจน
+2.  **CURRENT DAY ATTENDANCE ( top loop):** อธิบาย **ระบบเช็คชื่อรายวัน** ที่ทำโดย Head Student โดยมีไอคอน "เวลาปิดรับ ( Time Cutoff - 08:30 น.)", "วันหยุดสุดสัปดาห์", และ "วันหยุดพิเศษ" กะพริบเพื่อล็อกการเช็คชื่อแบบอัตโนมัติ ( image_2.png) ข้อมูลจะผ่านการซิงค์เวลา BKK Time และบันทึกลง Firestore
+3.  **EDITING PAST ATTENDANCE (DUAL-APPROVAL) ( bottom loop):** เน้นย้ำ **ระบบกุญแจ 2 ดอก ( Dual-Approval)** ( image_2.png) หาก Admin ต้องการแก้ข้อมูลเก่า ระบบจะสร้างเอกสารคำขอ (Edit Request) เพื่อให้อีก Admin ท่านอื่นมา Approve ก่อน ถึงจะอัปเดตฐานข้อมูลและ Log ได้ ( image_2.png)
+4.  **REAL-TIME & DASHBOARD ANALYTICS:** แสดง Real-time Post Section ที่ Admin โพสต์ประกาศแล้วเด้งไปหน้า Student ทันทีแบบวินาทีต่อวินาที ( image_2.png) และ sub-module สถิติ ( Dynamic Stats) ที่แสดงผลแยกตามสิทธิ์
 
 ---
 
-## 🗄️ Database Schema (NoSQL Data Model)
+<div align="center">
+  ## <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4520-a447-11eb-908a-139a6edaec5c.gif" width="35px"> ฟีเจอร์หลัก (Main Features)
+</div>
 
-โครงสร้าง Firestore ถูกออกแบบมาเพื่อลดการทำ Queries ที่ซ้ำซ้อน (Denormalization):
-
-* **`users`**: เก็บข้อมูล Profile ของผู้ใช้งาน
-    * `uid` (Document ID) -> `username`, `displayName`, `role`, `room`, `createdAt`
-* **`attendance`**: เก็บข้อมูลการเช็คชื่อ (1 Document / 1 วัน / 1 ห้อง)
-    * `{YYYY-MM-DD}_{Room}` (Document ID) -> `date`, `room`, `records: { uid: "present|late|absent|leave" }`, `recordedBy`, `updatedAt`
-* **`settings`**: เก็บ Configuration ของระบบ
-    * `attendance` -> `cutoffTime` (String)
-    * `holidays` -> `{YYYY-MM-DD}: true`
-    * `force_open` -> `{YYYY-MM-DD}: true`
-* **`edit_requests`**: คำขอแก้ไขข้อมูล
-    * `Auto-ID` -> `date`, `room`, `records` (New Data), `requestedBy`, `status`, `timestamp`
-* **`announcements`**: กระดานข่าว
-    * `Auto-ID` -> `content`, `author`, `timestamp`
-* **`system_logs`**: บันทึกการทำงาน
-    * `Auto-ID` -> `action`, `desc`, `actor`, `timestamp`
+* **📊 Real-time Dashboard:** กระดานข่าวสารอัจฉริยะ โพสต์ปุ๊บเด้งโชว์ปั๊บ Latency < 500ms ( image_2.png)
+* **📝 Smart Attendance Check:** เช็คชื่อรายวันรายห้อง มีระบบล็อกเวลา (Cutoff Time) ล็อกวันเสาร์-อาทิตย์ และบล็อกวันหยุดอัตโนมัติ ( image_2.png)
+* **🔐 Dual-Approval Workflow:** ระบบกุญแจ 2 ดอก หากต้องการแก้ไขข้อมูลย้อนหลัง แอดมินคนที่ 1 ต้องส่งคำขอให้แอดมินคนที่ 2 เป็นผู้อนุมัติเสมอ ( image_2.png) เพื่อความโปร่งใสสูงสุด
+* **📈 Dynamic Analytics:** สถิติอัจฉริยะแสดงผลแยกตามสิทธิ์ ผู้อำนวยการเห็นทั้งโรงเรียน, หัวหน้าห้องเห็นเฉพาะห้องตัวเอง, นักเรียนเห็นเฉพาะสถิติตัวเอง ( image_2.png)
+* **🕵️‍♂️ Intensive System Logs:** บันทึกประวัติการทำงานทุกฝีก้าวอย่างละเอียด ( System Logs) ใครทำอะไร แก้ไขข้อมูลใคร ตอนกี่โมง ระบบจดไว้หมด ( image_2.png)
+* **💥 Factory Reset (ปุ่มนิวเคลียร์):** `super_admin` สามารถล้างข้อมูลทั้งระบบในคลิกเดียว ( image_2.png)
 
 ---
 
-## 🔒 Security Posture (Firestore Rules)
+<div align="center">
+  ## <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4520-a447-11eb-908a-139a6edaec5c.gif" width="35px"> เทคโนโลยีที่ใช้ (Tech Stack)
+</div>
 
-ระบบนี้ใช้หลักการ **Zero Trust** จากฝั่ง Client:
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      // อนุญาตให้ผู้ใช้ในระบบอ่านข้อมูลได้เท่านั้น
-      allow read: if request.auth != null;
-      // ปิดประตูด้านหน้า 100% การเขียน/ลบ ทั้งหมดต้องผ่าน Backend (Cloud Functions)
-      allow write: if false; 
-    }
-  }
-}
+<p align="center">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5">
+  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3">
+  <br>
+  <img src="https://img.shields.io/badge/Firebase-039BE5?style=for-the-badge&logo=firebase&logoColor=white" alt="Firebase Overall Stack">
+  <img src="https://img.shields.io/badge/Firebase_Auth-039BE5?style=flat&logo=firebase&logoColor=white&labelColor=333" alt="Firebase Auth">
+  <img src="https://img.shields.io/badge/Cloud_Firestore-FFCA28?style=flat&logo=firebase&logoColor=black" alt="Cloud Firestore">
+  <img src="https://img.shields.io/badge/Cloud_Functions-339933?style=flat&logo=nodedotjs&logoColor=white" alt="Cloud Functions">
+</p>
+
+---
+
+<div align="center">
+  ## <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4520-a447-11eb-908a-139a6edaec5c.gif" width="35px"> Let's Connect ( p oko56's P rofile)
+</div>
+
+<p align="center">
+  <a href="https://github.com/poko56" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/github.svg" alt="poko56's GitHub" height="40" width="50" /></a>
+  <a href="https://www.facebook.com/pkm.junior.39" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/facebook.svg" alt="Facebook" height="40" width="50" /></a>
+  <a href="https://www.instagram.com/pokomankrub/" target="blank"><img align="center" src="https://raw.githubusercontent.com/rahuldkjain/github-profile-readme-generator/master/src/images/icons/Social/instagram.svg" alt="Instagram" height="40" width="50" /></a>
+</p>
