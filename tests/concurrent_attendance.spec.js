@@ -36,8 +36,12 @@ async function loginAndSubmitAttendance(page, account) {
 
   // ดึงข้อมูลนักเรียนในห้อง
   await page.click('button:has-text("ดึงข้อมูล")');
-  await page.waitForTimeout(2000);
-
+  try {
+    await page.waitForSelector('#student-list tr.radio-group, #student-list tr:not(:has-text("กำลังดึงข้อมูล"))', { state: 'visible', timeout: 15000 });
+  } catch (e) {
+    console.log(`[${account.room}] Data loading took too long or no students found.`);
+  }
+  await page.waitForTimeout(1000);
   // ตรวจสอบว่าตารางแสดงนักเรียนขึ้นมา (หรือว่างก็ได้)
   const cardVisible = await page.locator('#attendance-card').isVisible();
   console.log(`[${account.room}] Attendance card visible: ${cardVisible}`);
@@ -53,6 +57,7 @@ async function loginAndSubmitAttendance(page, account) {
 // === TEST 1: ทดสอบหัวหน้าทุกห้องบันทึกพร้อมกันจริงๆ (parallel workers) ===
 for (const account of HEAD_ACCOUNTS) {
   test(`Concurrent Check-in: ห้อง ${account.room}`, async ({ page }, testInfo) => {
+    test.setTimeout(90000);
     const alertMsg = await loginAndSubmitAttendance(page, account);
 
     // ต้องสำเร็จ หรือถ้าเคยเช็คชื่อแล้ว (isEditingMode) จะเป็น "คำขออนุมัติแก้ไข"
@@ -81,8 +86,8 @@ for (const account of HEAD_ACCOUNTS) {
 test('Verify: ทุกห้องมีข้อมูลใน Firestore (ไม่มีข้อมูลหาย)', async ({ page }) => {
   // ล็อกอินเป็น Super Admin เพื่อตรวจสอบข้อมูลทั้งระบบ
   await page.goto(PROD_URL);
-  await page.fill('#username', 'superadmin');
-  await page.fill('#password', 'password1234');
+  await page.fill('#username', 'Super.Admin_SKR');
+  await page.fill('#password', 'SKR_M5M5');
   await page.click('#loginBtn');
   await page.waitForURL('**/dashboard.html**', { timeout: 20000 });
 

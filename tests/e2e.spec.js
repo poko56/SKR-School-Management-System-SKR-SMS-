@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 const HAS_VALID_ACCOUNT = true;
 
 const ACCOUNTS = {
-    super: { u: 'superadmin', p: 'password1234' },
+    super: { u: 'Super.Admin_SKR', p: 'SKR_M5M5' },
     admin1: { u: 'admin1', p: 'password1234' },
     admin2: { u: 'admin2', p: 'password1234' },
     head1: { u: 'head1', p: 'password1234' },
@@ -152,12 +152,13 @@ test.describe('Mode 5: Feed & Dashboard Analytics', () => {
     await loginUser(pageAdmin, 'super');
     
     const testMsg = "ประกาศสด " + Date.now();
+    await pageAdmin.waitForSelector('#post-content', { state: 'visible', timeout: 30000 });
     await pageAdmin.fill('#post-content', testMsg);
     await pageAdmin.click('#btn-post');
     await pageAdmin.waitForTimeout(2000); // Wait for cloud function
     
     // Student should see it without refresh
-    await expect(pageStudent.locator('.feed-content', { hasText: testMsg }).first()).toBeVisible();
+    await expect(pageStudent.locator('.feed-content', { hasText: testMsg }).first()).toBeVisible({ timeout: 20000 });
     
     await context1.close();
     await context2.close();

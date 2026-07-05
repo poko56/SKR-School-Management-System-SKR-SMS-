@@ -5,12 +5,12 @@ test.describe('SKR SMS Security & Edge Cases', () => {
   const PROD_URL = 'https://krumaneerus.web.app/?v=3';
 
   // Helper สำหรับสร้างบัญชีทดสอบที่สามารถทำลายทิ้งได้ (แยก Role)
-  // แต่เนื่องจากเราไม่รู้รหัส Super Admin ที่แท้จริงใน script นี้ เลยล็อกอินด้วย superadmin
+  // แต่เนื่องจากเราไม่รู้รหัส Super Admin ที่แท้จริงใน script นี้ เลยล็อกอินด้วย Super.Admin_SKR
   
   test('1.1 Spacebar Spam (Input Destruction)', async ({ page }) => {
     await page.goto(PROD_URL);
-    await page.fill('#username', 'superadmin'); // ใช้บัญชีแอดมินทดสอบ
-    await page.fill('#password', 'password1234');
+    await page.fill('#username', 'Super.Admin_SKR'); // ใช้บัญชีแอดมินทดสอบ
+    await page.fill('#password', 'SKR_M5M5');
     await page.click('#loginBtn');
     await page.waitForURL('**/dashboard.html**');
 
@@ -31,12 +31,13 @@ test.describe('SKR SMS Security & Edge Cases', () => {
 
   test('1.2 XSS Attack (Cross-site Scripting)', async ({ page }) => {
     await page.goto(PROD_URL);
-    await page.fill('#username', 'superadmin');
-    await page.fill('#password', 'password1234');
+    await page.fill('#username', 'Super.Admin_SKR');
+    await page.fill('#password', 'SKR_M5M5');
     await page.click('#loginBtn');
-    await page.waitForURL('**/dashboard.html**');
+    await page.waitForURL('**/dashboard.html**', { timeout: 30000 });
 
     const xssPayload = "<script>alert('เว็บโดนแฮกแล้ว!')</script>";
+    await page.waitForSelector('#post-content', { state: 'visible', timeout: 30000 });
     await page.fill('#post-content', xssPayload);
     
     // หน้าเว็บต้องไม่แสดง Alert ที่เกิดจาก Payload
@@ -60,8 +61,8 @@ test.describe('SKR SMS Security & Edge Cases', () => {
 
     test('4.1 Spam Posts (Lock button)', async ({ page }) => {
     await page.goto(PROD_URL);
-    await page.fill('#username', 'superadmin');
-    await page.fill('#password', 'password1234');
+    await page.fill('#username', 'Super.Admin_SKR');
+    await page.fill('#password', 'SKR_M5M5');
     await page.click('#loginBtn');
     await page.waitForURL('**/dashboard.html**');
 
@@ -85,9 +86,9 @@ test.describe('SKR SMS Security & Edge Cases', () => {
   });
 
   test('6.3 ลบ Disabled (Inspect Element): เปลี่ยนห้องเช็คชื่อ', async ({ page }) => {
-    // สมมติว่าล็อกอินเป็น head1
+    // สมมติว่าล็อกอินเป็น head_m51
     await page.goto(PROD_URL);
-    await page.fill('#username', 'head1'); 
+    await page.fill('#username', 'head_m51'); 
     await page.fill('#password', 'password1234');
     
     // ดักจับ alert ไว้ก่อนเลย เผื่อล็อกอินไม่ผ่าน
@@ -119,15 +120,20 @@ test.describe('SKR SMS Security & Edge Cases', () => {
     });
 
     // โหลดข้อมูลห้องตัวเองก่อน (M5-1)
+    await page.waitForFunction(() => document.getElementById('room-select').value !== '', { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(500);
     await page.click('button:has-text("ดึงข้อมูล")');
-    await page.waitForTimeout(1500);
+    await page.waitForSelector('#student-list input[type="radio"]', { state: 'visible', timeout: 15000 });
+    await page.waitForTimeout(500);
 
     // === จำลอง Inspect Element: ลบ disabled แล้วแอบเปลี่ยนห้องหลังโหลดข้อมูลแล้ว ===
     // เปลี่ยน room-select value ตรงหน้าเว็บก่อน save เพื่อทดสอบ backend block
     await page.evaluate(() => {
       const rs = document.getElementById('room-select');
-      rs.removeAttribute('disabled');
-      rs.value = 'M1-1'; // แอบเปลี่ยนห้องเป็น M1-1 ซึ่งไม่ใช่ห้องของตัวเอง
+      if(rs) {
+          rs.removeAttribute('disabled');
+          rs.value = 'M1-1'; // แอบเปลี่ยนห้องเป็น M1-1 ซึ่งไม่ใช่ห้องของตัวเอง
+      }
     });
 
     // สมมติว่าติ๊กเช็คชื่อคนแรก

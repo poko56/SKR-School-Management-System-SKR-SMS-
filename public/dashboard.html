@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --skr-red: #c62828; --skr-red-hover: #b71c1c; --skr-dark: #1e293b; --skr-bg: #f4f6f8; }
         body { font-family: 'Sarabun', sans-serif; background: var(--skr-bg); margin: 0; display: flex; height: 100vh; overflow: hidden; color: var(--skr-dark); }
@@ -84,6 +85,14 @@
             <h2 id="stats-header">สถิติการเข้าเรียน 📊</h2>
             <div class="stats-grid" id="stats-container">
                 <div class="stat-card"><div class="stat-title">กำลังโหลดข้อมูล...</div></div>
+            </div>
+            <div id="charts-wrapper" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin: 20px auto; display: none;">
+                <div id="pie-chart-container" style="width: 250px; height: 250px;">
+                    <canvas id="attendancePieChart"></canvas>
+                </div>
+                <div id="bar-chart-container" style="width: 400px; height: 250px;">
+                    <canvas id="attendanceBarChart"></canvas>
+                </div>
             </div>
 
             <br><h2>กระดานประกาศโรงเรียน (Announcements)</h2>
@@ -172,6 +181,58 @@
                 <div class="stat-card"><div class="stat-title">สาย</div><div class="stat-value text-yellow">${late}</div></div>
                 <div class="stat-card"><div class="stat-title">ขาด</div><div class="stat-value text-red">${absent}</div></div>
                 <div class="stat-card"><div class="stat-title">ลา</div><div class="stat-value text-blue">${leave}</div></div>`;
+            
+            document.getElementById('charts-wrapper').style.display = 'flex';
+            renderCharts(present, late, absent, leave);
+        }
+
+        let pieChartInstance = null;
+        let barChartInstance = null;
+        function renderCharts(present, late, absent, leave) {
+            const pieCtx = document.getElementById('attendancePieChart').getContext('2d');
+            const barCtx = document.getElementById('attendanceBarChart').getContext('2d');
+            
+            if (pieChartInstance) pieChartInstance.destroy();
+            if (barChartInstance) barChartInstance.destroy();
+            
+            const hasData = present > 0 || late > 0 || absent > 0 || leave > 0;
+            const dataValues = hasData ? [present, late, absent, leave] : [1];
+            const bgColors = hasData ? ['#22c55e', '#eab308', '#ef4444', '#3b82f6'] : ['#e2e8f0'];
+            const dataLabels = hasData ? ['มาเรียน', 'สาย', 'ขาด', 'ลา'] : ['ไม่มีข้อมูล'];
+
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: dataLabels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: bgColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['มาเรียน', 'สาย', 'ขาด', 'ลา'],
+                    datasets: [{
+                        label: 'จำนวนนักเรียน',
+                        data: [present, late, absent, leave],
+                        backgroundColor: ['#22c55e', '#eab308', '#ef4444', '#3b82f6'],
+                        borderRadius: 5
+                    }]
+                },
+                options: { 
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
         }
 
         async function submitAnnouncement() {

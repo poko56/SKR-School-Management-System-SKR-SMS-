@@ -235,7 +235,7 @@
             const listContainer = document.getElementById('student-list'); listContainer.innerHTML = "<tr><td colspan='3'>กำลังดึงข้อมูล...</td></tr>";
             document.getElementById('attendance-card').style.display = 'block'; document.getElementById('room-title').innerText = `เช็คชื่อห้อง ${escapeHTML(roomInput)} (ประจำวันที่ ${escapeHTML(dateInput)})`;
             try {
-                const studentSnap = await db.collection("users").where("role", "==", "student").where("room", "==", roomInput).get();
+                const studentSnap = await db.collection("users").where("room", "==", roomInput).get();
                 const attDoc = await db.collection("attendance").doc(`${dateInput}_${roomInput}`).get();
                 let existingRecords = {}; isEditingMode = attDoc.exists;
                 if (isEditingMode) existingRecords = attDoc.data().records || {};
@@ -247,7 +247,9 @@
                 currentStudents = []; let html = "";
                 if (studentSnap.empty) return listContainer.innerHTML = "<tr><td colspan='3' style='text-align:center; color:red;'>ไม่พบนักเรียนห้องนี้</td></tr>";
                 studentSnap.forEach(doc => {
-                    const student = doc.data(); const uid = doc.id; currentStudents.push(uid); const status = existingRecords[uid] || "present"; 
+                    const student = doc.data(); 
+                    if (student.role !== 'student') return; // Filter in memory
+                    const uid = doc.id; currentStudents.push(uid); const status = existingRecords[uid] || "present"; 
                     html += `<tr><td>${escapeHTML(student.username)}</td><td style="word-wrap:break-word; max-width:150px;">${escapeHTML(student.displayName)}</td><td class="radio-group">
                                 <label class="status-present"><input type="radio" name="status_${uid}" value="present" ${status === 'present' ? 'checked' : ''}> มาเรียน</label>
                                 <label class="status-late"><input type="radio" name="status_${uid}" value="late" ${status === 'late' ? 'checked' : ''}> สาย</label>
